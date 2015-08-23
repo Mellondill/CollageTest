@@ -1,21 +1,20 @@
 package com.mellondill.collagetest.resource
 {
 	import com.mellondill.collagetest.factory.api.IResourceLoaderFactory;
-	import com.mellondill.collagetest.signal.ResourceLoadedImageSignal;
+	import com.mellondill.collagetest.signal.ResourceLoadedTextSignal;
 	
-	import flash.display.Bitmap;
-	import flash.display.Loader;
-	
-	public class ImageResource extends BaseResource
+	import flash.net.URLLoader;
+
+	public class TextResource extends BaseResource
 	{
 		[Inject]
 		public var loaderFactory:IResourceLoaderFactory;
 		
-		private var _loader:Loader;
+		private var _loader:URLLoader;
 		
 		override protected function _init():void
 		{
-			_resourceLoaded = new ResourceLoadedImageSignal();
+			_resourceLoaded = new ResourceLoadedTextSignal();
 		}
 		
 		override protected function _startLoad():void
@@ -26,37 +25,38 @@ package com.mellondill.collagetest.resource
 			}
 			else
 			{
-				loaderFactory.loaderIsFree.add( notifyTryGetFreeLoader );
+				loaderFactory.loaderIsFree.add( notifyTryGetFreeUrlLoader );
 			}
 		}
 		
-		private function notifyTryGetFreeLoader():void
+		private function notifyTryGetFreeUrlLoader():void
 		{
 			if( loaderFactory.isFreeLoader )
 			{
-				loaderFactory.loaderIsFree.remove( notifyTryGetFreeLoader );
+				loaderFactory.loaderIsFree.remove( notifyTryGetFreeUrlLoader );
 				notifyStartLoad();
 			}
 		}
 		
 		private function notifyStartLoad():void
 		{
-			_loader = loaderFactory.getLoader();
-			child = _loader.contentLoaderInfo;
+			_loader = loaderFactory.getUrlLoader();
+			child = _loader;
 			listenIOError();
+			listenSecurityError();
 			listenLoadComplete( notifyImageLoaded );
 			_loader.load( request );
 		}
 		
 		private function notifyImageLoaded():void
 		{
-			_resourceLoaded.dispatch( ( _loader.content as Bitmap ).bitmapData.clone() );
+			_resourceLoaded.dispatch( _loader.data );
 			dispose();
 		}
 		
 		override protected function _dispose():void
 		{
-			_loader.unloadAndStop();
+			_loader.close();
 			_resourceLoaded.removeAll();
 			_resourceLoaded = null;
 			_loader = null;

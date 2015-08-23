@@ -2,12 +2,10 @@ package com.mellondill.collagetest.service
 {
 	import com.mellondill.collagetest.service.api.ILogger;
 	
-	public class Logger implements ILogger
+	import org.robotlegs.mvcs.Actor;
+	
+	public class Logger extends Actor implements ILogger
 	{
-		public function Logger()
-		{
-		}
-		
 		public function log(...args):void
 		{
 			args.unshift( "log: " );

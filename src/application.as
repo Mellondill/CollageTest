@@ -5,6 +5,7 @@ package
 	import flash.display.Sprite;
 	import flash.events.Event;
 	
+	[SWF(width="1280",height="800")]
 	public class application extends Sprite
 	{
 		private var _context:AppContext;

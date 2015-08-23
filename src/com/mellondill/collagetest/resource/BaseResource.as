@@ -20,6 +20,10 @@ package com.mellondill.collagetest.resource
 		
 		protected var _resourceLoaded:Signal;
 		
+		private var _loadCompleteListener:Function;
+		
+		private var _child:IEventDispatcher;
+		
 		final public function init(url:String):void
 		{
 			_url = url;
@@ -43,8 +47,17 @@ package com.mellondill.collagetest.resource
 		
 		final public function dispose():void
 		{
+			if( _child )
+			{
+				_child.removeEventListener( Event.COMPLETE, notifyLoadComplete );
+				_child.removeEventListener( IOErrorEvent.IO_ERROR, notifyIOError );
+				_child.removeEventListener( SecurityErrorEvent.SECURITY_ERROR, notifySecurityError );
+			}
 			_dispose();
+			_loadCompleteListener = null;
+			_child = null;
 			_url = null;
+			logger = null;
 		}
 		
 		protected function _init():void
@@ -62,19 +75,31 @@ package com.mellondill.collagetest.resource
 			throw new Error( "_dispose function need to be implemented in child class" );
 		}
 		
-		protected function listenLoadComplete( child:IEventDispatcher, listener:Function ):void
+		protected function set child( value:IEventDispatcher ):void
 		{
-			child.addEventListener( Event.COMPLETE, function( event:Event ):void{ event.currentTarget.removeEventListener( event.type, arguments.callee ); listener(); } );
+			_child = value;
 		}
 		
-		protected function listenIOError( child:IEventDispatcher ):void
+		protected function listenLoadComplete( listener:Function ):void
 		{
-			child.addEventListener( IOErrorEvent.IO_ERROR, notifyIOError );
+			_loadCompleteListener = listener;
+			_child.addEventListener( Event.COMPLETE, notifyLoadComplete );
 		}
 		
-		protected function listenSecurityError( child:IEventDispatcher ):void
+		protected function listenIOError():void
 		{
-			child.addEventListener( SecurityErrorEvent.SECURITY_ERROR, notifySecurityError );
+			_child.addEventListener( IOErrorEvent.IO_ERROR, notifyIOError );
+		}
+		
+		protected function listenSecurityError():void
+		{
+			_child.addEventListener( SecurityErrorEvent.SECURITY_ERROR, notifySecurityError );
+		}
+		
+		protected function notifyLoadComplete( event:Event ):void
+		{
+			_child.removeEventListener( Event.COMPLETE, notifyLoadComplete );
+			_loadCompleteListener();
 		}
 		
 		protected function notifyIOError( event:IOErrorEvent ):void

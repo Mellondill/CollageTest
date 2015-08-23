@@ -8,13 +8,9 @@ package com.mellondill.collagetest.factory.api
 	
 	public interface IResourceLoaderFactory extends IFactory
 	{
-		function get urlLoader():URLLoader;
+		function getUrlLoader():URLLoader;
 		
-		function get isFreeUrlLoader():Boolean;
-		
-		function get urlLoaderIsFree():Signal;
-		
-		function get loader():Loader;
+		function getLoader():Loader;
 		
 		function get isFreeLoader():Boolean;
 		
