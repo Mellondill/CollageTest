@@ -1,6 +1,7 @@
 package com.mellondill.collagetest.service
 {
 	import com.mellondill.collagetest.model.vo.ImageVO;
+	import com.mellondill.utils.Range;
 	
 	import flash.geom.Point;
 	import flash.utils.Dictionary;
@@ -9,6 +10,9 @@ package com.mellondill.collagetest.service
 	
 	public class MultiImageSmartLayoutService extends Actor
 	{
+		private var _sortedLeafs:Vector.<LeafNode> = new Vector.<LeafNode>();
+		private var _expectedAspectRatioRange:Range;
+		
 		public function layout( images:Vector.<ImageVO>, containerDimentions:Point ):Vector.<ImageVO>
 		{
 			var leafs:Vector.<LeafNode> = new <LeafNode>[];
@@ -28,8 +32,38 @@ package com.mellondill.collagetest.service
 				leafRefs[leaf] = image;
 			}
 			
-			tree = createTree( leafs, true );
-			calculateAspectRatio( tree );
+			var expectedAR:Number = containerDimentions.x / containerDimentions.y;
+			
+			_expectedAspectRatioRange = new Range( expectedAR - ( expectedAR * 0.05 ), expectedAR + ( expectedAR * 0.05 ) );
+			
+			var treeIsGood:Boolean;
+			var percent:Number = 1.05;
+			
+			while( !treeIsGood )
+			{
+				_sortedLeafs = ( new Vector.<LeafNode> ).concat( leafs.sort( sortLeafNodes ) );
+				
+				tree = createTree( leafs, true, expectedAR );
+				calculateAspectRatio( tree );
+				
+				var t:uint = 20;
+				
+				var treeRange:Range = new Range( expectedAR, expectedAR * percent );
+				
+				while( t-- )
+				{
+					adjustTree( tree, 1.1 );
+					
+					if( treeRange.inRange( calculateAspectRatio( tree ) ) )
+					{
+						treeIsGood = true;
+						break;
+					}
+				}
+				
+				percent += 0.05;
+			}
+			
 			tree.width = containerDimentions.x;
 			tree.height = containerDimentions.x / tree.currentAspectRatio;
 			
@@ -47,7 +81,23 @@ package com.mellondill.collagetest.service
 			return images;
 		}
 		
-		private function createTree( images:Vector.<LeafNode>, splitV:Boolean ):INode
+		private function sortLeafNodes( item1:LeafNode, item2:LeafNode ):Number
+		{
+			var result:Number = 0;
+			
+			if( item1.currentAspectRatio > item2.currentAspectRatio )
+			{
+				result = 1;
+			}
+			else if( item1.currentAspectRatio < item2.currentAspectRatio )
+			{
+				result = -1;
+			}
+			
+			return result;
+		}
+		
+		private function createTree( images:Vector.<LeafNode>, splitV:Boolean, expectedAR:Number ):INode
 		{
 			var count:uint = images.length;
 			var node:INode;
@@ -58,11 +108,34 @@ package com.mellondill.collagetest.service
 				var right:Vector.<LeafNode> = left.splice( 0, count >> 1 );
 				
 				node = new InternalNode();
-				
+				node.numImages = count;
+				node.expectedAspectRatio = expectedAR;
+				splitV = Math.random() - 0.5 > 0;
 				node.split = splitV ? InternalNode.VERTICAL : InternalNode.HORIZONTAL;
 				
-				node.leftChild = createTree( left, !splitV );
-				node.rightChild = createTree( right, !splitV );
+				var childExpectedAR:Number = splitV ? expectedAR * 2 : expectedAR / 2;
+				
+				node.leftChild = createTree( left, !splitV, childExpectedAR );
+				node.rightChild = createTree( right, !splitV, childExpectedAR );
+				var n:uint = uint( node.leftChild is LeafNode ) + uint( node.rightChild is LeafNode );
+				
+				if( n == 2 )
+				{
+					var leafPair:Vector.<LeafNode> = getExpectedAspectRatioLeafPair();
+					node.leftChild = leafPair[0];
+					node.rightChild = leafPair[1];
+					trace("n==2");
+				}
+				else if( n == 1 )
+				{
+					var leaf:LeafNode = getExpectedAspectRatioLeaf();
+					if( leaf )
+					{
+						node.rightChild = leaf;
+						trace("n==1");
+					}
+						
+				}
 				
 				node.leftChild.parent = node;
 				node.rightChild.parent = node;
@@ -73,6 +146,99 @@ package com.mellondill.collagetest.service
 			}
 			
 			return node;
+		}
+		
+		private function adjustTree( node:INode, treshhold:Number ):void
+		{
+			if( node.type == Node.INTERNAL_NODE )
+			{
+				if( node.currentAspectRatio > node.expectedAspectRatio * treshhold )
+				{
+					node.split = InternalNode.HORIZONTAL;
+				}
+				
+				if( node.currentAspectRatio < node.expectedAspectRatio / treshhold )
+				{
+					node.split = InternalNode.VERTICAL;
+				}
+				
+				if( node.split == InternalNode.VERTICAL )
+				{
+					node.leftChild.expectedAspectRatio = node.expectedAspectRatio / 2;
+					node.rightChild.expectedAspectRatio = node.leftChild.expectedAspectRatio;
+				}
+				else
+				{
+					node.leftChild.expectedAspectRatio = node.expectedAspectRatio * 2;
+					node.rightChild.expectedAspectRatio = node.leftChild.expectedAspectRatio;
+				}
+				adjustTree( node.leftChild, treshhold );
+				adjustTree( node.rightChild, treshhold );
+			}
+		}
+		
+		private function getExpectedAspectRatioLeaf():LeafNode
+		{
+			var i:uint;
+			var length:uint;
+			
+			for( length = _sortedLeafs.length; i < length; i++ )
+			{
+				if( _expectedAspectRatioRange.inRange( _sortedLeafs[i].expectedAspectRatio ) )
+				{
+					return _sortedLeafs.splice( i, 1 )[0];
+				}
+			}
+			
+			return _sortedLeafs.splice( 0, 1 )[0];
+		}
+		
+		private function getExpectedAspectRatioLeafPair():Vector.<LeafNode>
+		{
+			var i:int;
+			var j:int;
+			var front:int;
+			var rear:int = _sortedLeafs.length - 1;
+			var arExp:Number = _expectedAspectRatioRange.median;
+			var arExpI:Number = _sortedLeafs[front].currentAspectRatio;
+			var arExpJ:Number = _sortedLeafs[rear].currentAspectRatio;
+			var minDiff:Number = Math.abs( arExpI + arExpJ - arExp );
+			
+			while( front <= rear )
+			{
+				arExpI = _sortedLeafs[front].currentAspectRatio;
+				arExpJ = _sortedLeafs[rear].currentAspectRatio;
+				if( arExpI + arExpJ > arExp )
+				{
+					if( Math.abs( arExpI + arExpJ - arExp ) < minDiff )
+					{
+						minDiff = Math.abs( arExpI + arExpJ - arExp );
+						i = front;
+						j = rear;
+					}
+					rear--;
+				}
+				else if( arExpI + arExpJ < arExp )
+				{
+					if( Math.abs( arExpI + arExpJ - arExp ) < minDiff )
+					{
+						minDiff = Math.abs( arExpI + arExpJ - arExp );
+						i = front;
+						j = rear;
+					}
+					front++;
+				}
+				else
+				{
+					i = front;
+					j = rear;
+				}
+			}
+			
+			var result:Vector.<LeafNode> = _sortedLeafs.splice( j, 1 );
+			result = result.concat( _sortedLeafs.splice( i, 1 ) );
+			
+			return result;
 		}
 		
 		private function calculateAspectRatio( node:INode ):Number
@@ -162,6 +328,9 @@ interface INode
 	function get parent():INode;
 	function set parent( value:INode ):void;
 	
+	function get numImages():uint;
+	function set numImages( value:uint ):void;
+	
 	function get split():String;
 	function set split( value:String ):void;
 }
@@ -181,6 +350,7 @@ class Node implements INode
 	private var _leftChild:INode;
 	private var _rightChild:INode;
 	private var _parent:INode;
+	private var _numImages:uint;
 
 	public function get split():String
 	{
@@ -286,6 +456,17 @@ class Node implements INode
 	{
 		return 0;
 	}
+
+	public function get numImages():uint
+	{
+		return _numImages;
+	}
+
+	public function set numImages(value:uint):void
+	{
+		_numImages = value;
+	}
+
 }
 
 class InternalNode extends Node
