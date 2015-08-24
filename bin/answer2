@@ -1,0 +1,59 @@
+function mergeSortedArrays( array1:Array, array2:Array ):Array
+{
+	var result:Array = [];
+	var array1IsAscending:Boolean = array1[0] < array1[array1.length-1];
+	var array2IsAscending:Boolean = array2[0] < array2[array2.length-1];
+	var length1:int = array1.length;
+	var length2:int = array2.length;
+	var i:int = !array1IsAscending && !array2IsAscending ? 0 : !array1IsAscending && array2IsAscending ? array1.length-1 : 0;
+	var j:int = !array2IsAscending && !array1IsAscending ? 0 : !array2IsAscending && array1IsAscending ? array2.length-1 : 0;
+	var k:int;
+	var order:String = "headToTail";
+	if( !array2IsAscending && !array1IsAscending )
+		order = "tailToHead";
+	else if( !array1IsAscending && array2IsAscending )
+		order = "headToTailMix1";
+	else if( array1IsAscending && !array2IsAscending )
+		order = "headToTailMix2";
+	
+	switch( order )
+	{
+		case "headToTail" :
+			while( i < length1 && j < length2 )
+				result[k++] = array1[i] < array2[j] ? array1[i++] : array2[j++];
+			while( i < length1 )
+				result[k++] = array1[i++];
+			while( j < length2 )
+				result[k++] = array2[j++];
+			break;
+			
+		case "tailToHead" :
+			while( i < length1 && j < length2 )
+				result[k++] = array1[i] > array2[j] ? array1[i++] : array2[j++];
+			while( i < length1 )
+				result[k++] = array1[i++];
+			while( j < length2 )
+				result[k++] = array2[j++];
+			break;
+			
+		case "headToTailMix1" :
+			while( i >= 0 && j < length2 )
+				result[k++] = array1[i] < array2[j] ? array1[i--] : array2[j++];
+			while( i >= 0 )
+				result[k++] = array1[i--];
+			while( j < length2 )
+				result[k++] = array2[j++];
+			break;
+			
+		case "headToTailMix2" :
+			while( i < length1 && j >= 0 )
+				result[k++] = array1[i] < array2[j] ? array1[i++] : array2[j--];
+			while( i < length1 )
+				result[k++] = array1[i++];
+			while( j >= 0 )
+				result[k++] = array2[j--];
+			break;
+	}
+	
+	return result;
+}

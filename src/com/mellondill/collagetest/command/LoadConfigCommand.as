@@ -29,12 +29,10 @@ package com.mellondill.collagetest.command
 			loader.loadText( configPath, notifyConfigLoaded );
 		}
 		
-		
 		private function notifyConfigLoaded( value:String ):void
 		{
 			var data:Object = planeXMLToObject( XML( value ) );
 			model.imageCount ||= int( data.image_count );
-			model.numRows ||= int( data.image_rows );
 			model.flickrApiKey ||= data.flickr_api_key;
 			
 			model.containerDimentions = new Point( contextView.stage.stageWidth, contextView.stage.stageHeight );

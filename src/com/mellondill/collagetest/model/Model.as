@@ -28,16 +28,6 @@ package com.mellondill.collagetest.model
 			result.content = bitmapData;
 			_images.push( result );
 		}
-		
-		public function deleteImageInstance( url:String ):void
-		{
-			var bitmapData:BitmapData = _images[url];
-			
-			if( bitmapData )
-				bitmapData.dispose();
-			
-			delete _images[url];
-		}
 
 		public function get currentLoadedCount():uint
 		{

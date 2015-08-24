@@ -1,0 +1,57 @@
+Extra question. Explain what does this code do, how it works and what’ s wrong with it:
+
+var xmlData:XML = 
+
+                <root>
+
+                                <node myVal="1">data</node>
+
+                                <node myVal="2"> data </node>
+
+                                <node myVal="3"> data </node>
+
+                                <node myVal="4"> data </node>
+
+                                <node myVal="5"> data </node>
+
+                </root>;
+
+                
+
+xmlData.children().(@myVal % 2 && trace(@myVal));
+
+this code is trying to trace odd atrribute values myVal, but the problem is, that there are not only five child nodes with name "node" but there are also text nodes with space character, and because of this? this expression :
+
+xmlData.children().(@myVal % 2 && trace(@myVal));
+
+wouldn't work, though if we will not all the children but only child nodes with name "node" :
+
+xmlData.node.(@myVal % 2 && trace(@myVal));
+
+we will get such trace :
+
+1
+3
+5
+
+here is the working example :
+
+var xmlData:XML = 
+
+                <root>
+
+                                <node myVal="1">data</node>
+
+                                <node myVal="2"> data </node>
+
+                                <node myVal="3"> data </node>
+
+                                <node myVal="4"> data </node>
+
+                                <node myVal="5"> data </node>
+
+                </root>;
+
+                
+
+xmlData.node.(@myVal % 2 && trace(@myVal));
