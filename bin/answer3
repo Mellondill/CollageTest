@@ -20,11 +20,12 @@ var xmlData:XML =
 
 xmlData.children().(@myVal % 2 && trace(@myVal));
 
-this code is trying to trace odd atrribute values myVal, but the problem is, that there are not only five child nodes with name "node" but there are also text nodes with space character, and because of this? this expression :
+this code is trying to trace odd atrribute values myVal, but the problem is that there are not only five child nodes with name "node",
+but there are also text nodes with space character before each XML node <node/> and before closing tag </root>, and because of this expression :
 
 xmlData.children().(@myVal % 2 && trace(@myVal));
 
-wouldn't work, though if we will not all the children but only child nodes with name "node" :
+this code wouldn't work, though, if we will look not on all children, but only on child nodes <node/> :
 
 xmlData.node.(@myVal % 2 && trace(@myVal));
 
